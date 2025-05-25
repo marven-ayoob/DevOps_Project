@@ -1,0 +1,448 @@
+/* _________________________________start golbal value_______________________________________ */
+:root{
+    --main-color: #19c8fa;
+    --transparent-color: rgb(15 116 143 /70%);
+}
+
+
+*{
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html{
+    scroll-behavior: smooth;
+}
+
+body{
+    font-family: 'Montserrat', sans-serif;
+}
+
+ul{
+    list-style: none;
+}
+
+
+.main-heading{
+    text-align: center;
+}
+.main-heading h2{
+    font-size: 40px;
+    text-transform: uppercase;
+    margin-bottom: 115px;
+    font-weight: normal;
+    position: relative;
+}
+
+.main-heading h2::before{
+    content: "";
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    height: 2px;
+    background-color: #777;
+
+    bottom: -30px;
+    width: 120px;
+    
+}
+.main-heading h2::after{
+    content: "";
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid #777;
+    left: 50%;
+    bottom: -38px;
+    transform: translateX(-50%);
+    background-color: white;
+}
+
+.main-heading p{
+    width: 550px;
+    max-width: 100%;
+    color: #777;
+    margin: 0 auto 100px;
+    font-size: 20px;
+    line-height: 30px;
+
+
+
+}
+
+
+.container {
+    padding-left: 15px;
+    padding-right: 15px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+@media (min-width: 768px){
+    .container{
+        width: 750px;
+    }
+}
+
+@media (min-width: 992px){
+    .container{
+        width: 970px;
+    }
+}
+
+@media (min-width: 1200px){
+    .container{
+        width: 1170px;
+    }
+}
+
+/* ______________________start header_______________________________ */
+header h1{
+    color: white;
+    position: relative;
+    margin-top: 52px;
+    font-size: 45px;
+    margin-left: -28px;
+}
+
+header nav ul li:hover a
+{
+    color: var(--main-color);
+}
+
+header{
+    position: fixed;
+    left: 0;
+    width: 100%;
+    z-index: 2;
+    background-color: rgb(0 0 0 /50%);
+    height: 130px;
+}
+
+header .container{
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    padding-left: 15px;
+    padding-right: 15px;
+    margin: auto;
+}
+
+header .container .logo img{
+    height: 170px;
+    padding-bottom: 8px;
+}
+
+
+/* disappear the toggle menu */
+@media (min-width: 767px){
+    
+    header nav .toggle-menu{
+        display: none;
+        align-items: center;
+    }
+}
+
+/*_____________ nav bar_________ */
+header nav{
+    flex: 1;
+    justify-content: flex-end;
+    display: flex;
+    align-items: center;
+}
+
+header nav ul{
+    display: flex;
+    justify-content: space-between;
+}
+header nav ul li a{
+    
+    display: block;
+    padding: 50px 25px;
+    color: white;
+    text-decoration: none;
+}
+header nav ul li .product-special {
+    display: block;
+    padding: 50px 25px;
+    color: white;
+}
+header nav ul li:hover .product-special {
+    color: var(--main-color);
+    cursor: pointer;
+}
+header nav ul li:hover a:hover {
+    /* color: var(--main-color); */
+    cursor: pointer;
+}
+
+header nav .toggle-menu{
+    color: aliceblue;
+    font-size: 22px;
+}
+
+
+
+/* lma b3ml hover 3l our prduct */
+header nav ul .product .menu {
+    display: none;
+    position: ABSOLUTE;
+    flex-direction: column;
+    justify-content: space-between;
+    top: 75%;
+    left: 85%;
+    TEXT-ALIGN: CENTER;
+    background-color: rgb(0 0 0 /60%);
+    width: max-content;
+}
+
+header .menu ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+
+
+header .menu  a {
+    display: block;
+    color: white;
+    text-decoration: none;
+    padding: 23px;
+    transition: 0.3s;
+}
+header .menu  a:hover {
+    transform: translateX(15px);
+}
+@media (min-width: 845px) and (max-width: 991px) {
+    header .container .logo img {
+        margin-left: -54px;
+    }
+}
+
+@media (max-width: 767px){
+    header nav ul {
+        position: ABSOLUTE;
+        flex-direction: column;
+        justify-content: space-between;
+        top: 75%;
+        left: 0;
+        align-items: center;
+        TEXT-ALIGN: CENTER;
+        background-color: rgb(0 0 0 / 60%);
+        width: 100%;
+    }
+    
+   
+    header nav ul .product .menu {
+        display: none;
+        position: ABSOLUTE;
+        flex-direction: column;
+        justify-content: space-between;
+        top: 45% !important; 
+        left: 60% !important; 
+        TEXT-ALIGN: CENTER;
+        background-color: rgb(0 0 0 / 60%) ;
+        width: max-content;
+    }
+    header .menu  a {
+        display: block;
+        color: white;
+        text-decoration: none;
+        padding: 23px;
+        transition: 0.3s;
+    }
+    header nav ul li:hover .product-special {
+        color: var(--main-color);
+        cursor: pointer;
+    }
+    header nav ul li:hover a:hover {
+        /* color: var(--main-color); */
+        cursor: pointer;
+    }
+    
+}
+
+/* ______________________end header_______________________________ */
+
+/* ________________________start landing ________________________*/
+.landing{
+    min-height: 100vh;
+    background-color: rgb(0 0 0 );
+    overflow: hidden;
+    background-image: url(../images/nasa-1lfI7wkGWZ4-unsplash.jpg);
+    background-size: cover;
+    position: relative;
+}
+.landing .overlay{
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgb(0 0 0 /30%);
+}
+.landing .overlay .text{
+    position: absolute;
+    top: 60%;
+    left: 0;
+    width: 50%;
+    transform: translateY(-50%);
+    color: white;
+    background-color: rgb(191 156 110 /60%);
+    padding: 90px;
+    display: flex;
+    justify-content: flex-end;
+    animation: animate 2s ease-in-out forwards; 
+    overflow: hidden;
+}
+.landing .overlay .text .content {
+    
+    position: absolute;
+    width: 90%;
+    top: 23%;
+    left: 22%;
+    
+    display: none;
+}
+
+@keyframes animate {
+    0% 
+    {
+        width: 0;
+        height: 20px;
+    }
+    100%
+    {
+    width: 40%;
+    height: 150px;
+    }
+}
+
+
+.landing .overlay .text h1{
+    text-transform:uppercase;
+    font-size: 45px;
+    padding: 10px;
+}
+
+
+
+
+@media (max-width: 767px){
+    .landing .overlay .text {
+        width: 100%;
+        top:55%;
+        padding: 25px;
+    }
+    @keyframes animate {
+        0% 
+        {
+            width: 0;
+            height: 20px;
+        }
+        100%
+        {
+        width: 100%;
+        height: 150px;
+        }
+    }
+  
+   
+    
+
+}
+
+ /* end landing */
+
+ /* ________________________start 4 items ____________________ */
+
+.services {
+    padding: 80px 0;
+    background-color: #f9f9f9;
+}
+
+.service-items {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    margin-top: 40px;
+}
+
+.service-item {
+    flex: 0 0 calc(50% - 20px);
+    max-width: calc(50% - 20px);
+    margin-bottom: 40px;
+    background-color: #fff;
+    padding: 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.service-item:hover {
+  transform: translateY(-10px);
+}
+
+.service-icon {
+    font-size: 36px;
+    color: #19c8fa;
+    margin-bottom: 20px;
+}
+
+.service-item h3 {
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+.service-item p {
+    color: #666;
+    font-size: 16px;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+.service-features {
+    padding-left: 20px;
+    list-style-type: none;
+}
+
+.service-features li {
+    color: #666;
+    font-size: 16px;
+    line-height: 1.6;
+    margin-bottom: 10px;
+}
+
+.service-features li::before {
+    content: "•";
+    margin-right: 10px;
+    color: #19c8fa;
+}
+
+.service-features li:last-child {
+    margin-bottom: 0;
+}
+.fa-check:before {
+    content: "\f00c";
+    color: var(--main-color);
+}
+.fa-network-wired:before {
+    content: "\f6ff";
+    color: var(--main-color);
+}
+.fa-cloud:before {
+    content: "\f0c2";
+    color: var(--main-color);
+}
+/* CSS code to style service titles and list items with the main color */
+
+.service-item h4
+ {
+    color: var(--main-color); /* Use the main color for service titles and paragraphs */
+    font-size: 16px;
+}

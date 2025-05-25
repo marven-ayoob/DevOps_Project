@@ -1,0 +1,443 @@
+/* golbal values */
+:root{
+    --main-color: #19c8fa;
+    --transparent-color: rgb(15 116 143 /70%);
+}
+
+
+*{
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+html{
+    scroll-behavior: smooth;
+}
+
+body{
+    font-family: 'Montserrat', sans-serif;
+}
+a{
+    text-decoration: none;
+}
+li {
+    list-style: none;
+}
+
+.container {
+    padding-left: 15px;
+    padding-right: 15px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+@media (min-width: 768px){
+    .container{
+        width: 750px;
+    }
+}
+
+@media (min-width: 992px){
+    .container{
+        width: 970px;
+    }
+}
+
+@media (min-width: 1200px){
+    .container{
+        width: 1170px;
+    }
+}
+/* end golbal values */
+
+/*--------------------- start header--------------------- */
+
+header h1{
+    color: white;
+    position: relative;
+    margin-top: 52px;
+    font-size: 45px;
+    margin-left: -28px;
+}
+header{
+    position: fixed;
+    left: 0;
+    width: 100%;
+    height: 125px;
+    z-index: 2;
+    background-color: rgb(0 0 0 /60%);
+
+}
+
+header .container{
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    padding-left: 15px;
+    padding-right: 15px;
+    margin: auto;
+}
+
+header .container .logo img{
+    height: 170px;
+    padding-bottom: 8px;
+}
+header nav{
+    flex: 1;
+    justify-content: flex-end;
+    display: flex;
+    align-items: center;
+}
+
+header nav ul{
+    display: flex;
+    justify-content: space-between;
+    list-style: none;
+}
+
+header nav ul li .home, 
+header nav ul li .services, 
+header nav ul li .about-us, 
+header nav ul li .product-special,
+header nav ul li .for-you {
+    display: block;
+    padding: 50px 25px;
+    color: white;
+}
+header nav ul li:hover .home,
+header nav ul li:hover .services,
+header nav ul li:hover .about-us,
+header nav ul li:hover .product-special
+ {
+    color: var(--main-color);
+    cursor: pointer;
+}
+header nav ul li:hover a:hover {
+    color: var(--main-color);
+    cursor: pointer;
+}
+
+
+header nav .toggle-menu{
+    color: aliceblue;
+    font-size: 22px;
+}
+@media (min-width: 767px){
+    
+    header nav .toggle-menu{
+        display: none;
+        align-items: center;
+    }
+}
+@media (max-width: 767px){
+    header nav ul{
+        display: none;
+    }
+    header nav .toggle-menu:hover + ul{
+        display: flex;
+        flex-direction: column;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        align-items: center;
+        background-color: rgb(0 0 0 /70%);
+        width: 100%;
+    }
+}
+
+/* lma b3ml hover 3l our prduct */
+header nav ul .product .menu {
+    display: none;
+}
+header nav ul .product .menu {
+    position: ABSOLUTE;
+    flex-direction: column;
+    justify-content: space-between;
+    top: 72%;
+    left: 85%;
+    TEXT-ALIGN: CENTER;
+    background-color: rgb(0 0 0 /60%);
+    width: max-content;
+}
+
+header .menu ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+
+
+header .menu  a {
+    display: block;
+    color: white;
+    text-decoration: none;
+    padding: 23px;
+    transition: 0.3s;
+}
+header .menu  a:hover {
+    transform: translateX(15px);
+}
+
+/* end header */
+
+
+/* start landing */
+.landing{
+    min-height: 100vh;
+    background-color: rgb(0 0 0 );
+    overflow: hidden;
+    background-image: url(../images/dedicated-server-bg.jpg);
+background-size: cover;
+position: relative;
+}
+.landing .overlay{
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgb(0 0 0 /40%);
+}
+
+.landing .text{
+    top: 53%;
+    position: absolute;
+    background-color: var(--transparent-color);
+    width: 62%;
+    left: 38%;
+    padding: 36px;
+    font-size: 52px;
+
+}
+.landing .text p{
+    
+    position: relative;
+    
+    text-align: center;
+    text-transform: uppercase;
+    color: white;
+}
+
+
+
+
+@media (max-width: 767px){
+  
+    
+    .landing{
+        min-height: 100vh;
+        background-color: rgb(0 0 0 );
+        overflow: hidden;
+        background-image: url(../images/dedicated-server-bg.jpg);
+    background-size: cover;
+    position: relative;
+    }
+    .landing .cloud-image{
+        min-height: 80vh;
+        background-size: cover;
+        position: relative;
+        top: 177px;
+        left: 0;
+        background-color: rgb(0 0 0 );
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .landing .text{
+        top: 62%;
+        position: absolute;
+        background-color: var(--transparent-color);
+        width: 80%;
+        left: 21%;
+        padding: 25px;
+        font-size: 49px;
+    
+    }
+    .landing .text p{
+        
+        position: relative;
+        
+        text-align: center;
+        text-transform: uppercase;
+        color: white;
+    }
+    .landing .overlay{
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgb(0 0 0 /40%);
+    }
+    
+
+}
+
+ /* end landing */
+ 
+ /* --------------h3------------ */
+
+/* h3
+{
+        font-size: 45px;
+        background-color: rgb(15 116 143 /105%);
+        text-transform: uppercase;
+        padding: 30px;
+        color: azure;
+        left: 50px;
+        position: absolute;
+        top: 110%;
+        width: auto;
+        border-radius: 75px;
+        text-align: center;
+}
+ */
+
+
+/* start comparing*/
+
+    .section{
+        padding: 30px;
+            background-color: rgb(0 0 0 /90%);
+        
+    }
+    .main-heading{
+        text-align: center;
+        display: flex;
+        /* margin-top: 275px; */
+        flex-direction: column;
+    
+    }
+    .main-heading .block,
+    .main-heading .block-server
+    {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        flex-wrap: nowrap;
+        margin-left: 40px;
+        margin-top: 60px;
+        
+    }
+    .main-heading .s7aba{
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: flex-start;
+        text-align: left;
+        font-size: 25px;
+        line-height: 40px;
+        color: white;
+    
+    }
+    
+    .main-heading .block .adv,
+    .main-heading .block .disadv,
+    .main-heading .block-server .disadv,
+    .main-heading .block-server .adv
+    {
+        font-size: 50px;
+        padding: 40px;
+    }
+    
+    .main-heading h2
+    {
+        text-transform: uppercase;
+        margin-left: 3px;
+        font-size: 55px !important;
+    
+    }
+    
+    .main-heading .serv{
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: flex-start;
+        text-align: left;
+        font-size: 25px;
+        line-height: 40px;
+        color: white;
+        margin-top: 80px;
+    
+    }
+    
+    
+
+
+
+@media (max-width: 767px){
+
+        .section{
+            padding: 60px;
+                background-color: rgb(0 0 0 /90%);
+            
+        }
+        .main-heading{
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            flex-wrap: nowrap;     
+            align-items: center;
+
+        }
+        .main-heading .block,
+    .main-heading .block-server{
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            flex-wrap: nowrap;
+            margin-left: 40px;
+            
+        }
+    .main-heading .block .adv,
+    .main-heading .block .disadv,
+    .main-heading .block-server .disadv,
+    .main-heading .block-server .adv
+    {
+        font-size: 30px;
+        padding: 30px;
+    }
+        
+        
+        
+
+        .main-heading .s7aba{
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            text-align: left;
+            font-size: 20px;
+            line-height: 40px;
+            color: white;
+            flex-direction: column;
+        }
+        
+
+
+        .main-heading h2
+        {
+            text-transform: uppercase;
+            margin-left: 3px;
+            font-size: 55px !important;
+            margin-bottom: 45px;
+            margin-top: 20px;
+
+        }
+
+        .main-heading .serv{
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            text-align: left;
+            font-size: 20px;
+            line-height: 40px;
+            color: white;
+            margin-top: 80px;
+            flex-direction: column;
+
+        }
+        
+        
+}
+
+/* end comparing*/
