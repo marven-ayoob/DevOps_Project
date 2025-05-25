@@ -11,7 +11,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/marven-ayoob/DevOps_Project'
+                git branch: 'master', url: 'https://github.com/marven-ayoob/DevOps_Project.git'
             }
         }
 
