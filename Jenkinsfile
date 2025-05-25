@@ -2,18 +2,17 @@ pipeline {
     agent any // Jenkins master node will execute this. Docker and AWS CLI must be installed on it.
 
     environment {
-        // --- IDs of Jenkins 'Secret text' credentials for ECR configuration ---
-        // Updated based on your screenshot:
-        AWS_ACCOUNT_ID_CRED_ID = 'ecr-aws-account-id'      // <<== VERIFY THIS ID in Jenkins (especially if it has a space)
+        // IDs of Jenkins 'Secret text' credentials for ECR configuration
+        // These MUST EXACTLY match the IDs you created in Jenkins.
+        AWS_ACCOUNT_ID_CRED_ID = 'ecr-aws-account-id'
         AWS_REGION_CRED_ID = 'ecr-aws-region'
         ECR_REPOSITORY_NAME_CRED_ID = 'ecr-repository-name'
 
-        // --- ID for your main AWS Credentials (Access Key & Secret Key) ---
-        // Updated based on your screenshot:
+        // ID for your main AWS Credentials (Access Key & Secret Key)
         AWS_CREDENTIALS_ID_JENKINS = 'aws_credentials_id'
 
-        // --- Configuration for Docker Image (from your existing build stage) ---
-        LOCAL_IMAGE_BASE_NAME = "marven-ayoob/devops-static-website" // Base name for the image built locally
+        // Configuration for Docker Image
+        LOCAL_IMAGE_BASE_NAME = "ziad-assem/devops-project" // <<=== UPDATED
     }
 
     stages {
@@ -25,37 +24,24 @@ pipeline {
             }
         }
 
-        stage('Show File Content') { // As per your provided Jenkinsfile
-            steps {
-                echo 'Reading test-pipeline.txt...'
-                script {
-                    if (fileExists('test-pipeline.txt')) {
-                        def fileContent = readFile 'test-pipeline.txt'
-                        echo "Contents of test-pipeline.txt:"
-                        echo "------------------------------------"
-                        echo fileContent.trim() // .trim() is good practice
-                        echo "------------------------------------"
-                    } else {
-                        echo "WARNING: test-pipeline.txt not found in the workspace."
-                    }
-                }
-            }
-        }
-
         stage('Build Docker Image') {
             steps {
                 echo "Building Docker image for ${env.LOCAL_IMAGE_BASE_NAME}..."
                 script {
+                    // Ensure Dockerfile is present in the workspace root
+                    if (!fileExists('Dockerfile')) {
+                        error "Dockerfile not found in the workspace. Cannot build image."
+                    }
+
                     def localImageWithVersionTag = "${env.LOCAL_IMAGE_BASE_NAME}:${env.BUILD_NUMBER}"
                     def localImageWithLatestTag = "${env.LOCAL_IMAGE_BASE_NAME}:latest"
 
-                    if (fileExists('Dockerfile')) {
-                        sh "docker build -t ${localImageWithVersionTag} -t ${localImageWithLatestTag} ."
-                        echo "Docker image built and tagged locally as: ${localImageWithVersionTag} and ${localImageWithLatestTag}"
-                        sh "docker images ${env.LOCAL_IMAGE_BASE_NAME}"
-                    } else {
-                        error "Dockerfile not found in the workspace. Cannot build image."
-                    }
+                    // The '.' indicates the build context is the current directory (workspace root)
+                    sh "docker build -t ${localImageWithVersionTag} -t ${localImageWithLatestTag} ."
+                    echo "Docker image built and tagged locally as: ${localImageWithVersionTag} and ${localImageWithLatestTag}"
+                    
+                    echo "Listing Docker images for ${env.LOCAL_IMAGE_BASE_NAME}:"
+                    sh "docker images ${env.LOCAL_IMAGE_BASE_NAME}"
                 }
             }
         }
@@ -63,84 +49,124 @@ pipeline {
         stage('Login to ECR & Push Image') {
             steps {
                 script {
-                    // Retrieve ECR configuration from Jenkins 'Secret text' credentials
-                    def awsRegion = credentials(env.AWS_REGION_CRED_ID)
-                    def awsAccountId = credentials(env.AWS_ACCOUNT_ID_CRED_ID)
-                    def ecrRepositoryName = credentials(env.ECR_REPOSITORY_NAME_CRED_ID)
+                    echo "--- Stage: Login to ECR & Push Image ---"
+                    echo "DEBUG: Attempting to retrieve credential IDs from environment..."
+                    String retrievedAwsRegionCredId = env.AWS_REGION_CRED_ID
+                    String retrievedAwsAccountIdCredId = env.AWS_ACCOUNT_ID_CRED_ID
+                    String retrievedEcrRepoNameCredId = env.ECR_REPOSITORY_NAME_CRED_ID
+                    String retrievedAwsCredsJenkinsId = env.AWS_CREDENTIALS_ID_JENKINS
 
-                    // Basic validation that credentials were fetched
-                    if (!awsRegion || !awsAccountId || !ecrRepositoryName) {
-                        error("Failed to retrieve one or more ECR configuration credentials (Region, Account ID, or Repo Name). " +
-                              "Please check that the Jenkinsfile environment variables (e.g., AWS_REGION_CRED_ID) " +
-                              "correctly point to existing 'Secret text' credential IDs in Jenkins that match EXACTLY.")
+                    echo "DEBUG: AWS_REGION_CRED_ID = '${retrievedAwsRegionCredId}'"
+                    echo "DEBUG: AWS_ACCOUNT_ID_CRED_ID = '${retrievedAwsAccountIdCredId}'"
+                    echo "DEBUG: ECR_REPOSITORY_NAME_CRED_ID = '${retrievedEcrRepoNameCredId}'"
+                    echo "DEBUG: AWS_CREDENTIALS_ID_JENKINS = '${retrievedAwsCredsJenkinsId}'"
+
+                    if (retrievedAwsRegionCredId == null || retrievedAwsAccountIdCredId == null || retrievedEcrRepoNameCredId == null || retrievedAwsCredsJenkinsId == null) {
+                        error("CRITICAL FAILURE: One or more credential ID variables in the Jenkinsfile 'environment' block is null. Check for typos or ensure they are defined.")
                     }
+                    if (retrievedAwsRegionCredId.isEmpty() || retrievedAwsAccountIdCredId.isEmpty() || retrievedEcrRepoNameCredId.isEmpty() || retrievedAwsCredsJenkinsId.isEmpty()) {
+                        error("CRITICAL FAILURE: One or more credential ID variables in the Jenkinsfile 'environment' block is empty. Check definitions.")
+                    }
+                    
+                    echo "DEBUG: Attempting to resolve secret text credentials..."
+                    def awsRegion = credentials(retrievedAwsRegionCredId)
+                    def awsAccountId = credentials(retrievedAwsAccountIdCredId)
+                    def ecrRepositoryName = credentials(retrievedEcrRepoNameCredId)
 
-                    // Construct the full ECR registry path and image names
+                    echo "DEBUG: Value returned by credentials('${retrievedAwsRegionCredId}'): '${awsRegion}' (Class: ${(awsRegion != null) ? awsRegion.getClass().getName() : 'null'})"
+                    echo "DEBUG: Value returned by credentials('${retrievedAwsAccountIdCredId}'): '${awsAccountId}' (Class: ${(awsAccountId != null) ? awsAccountId.getClass().getName() : 'null'})"
+                    echo "DEBUG: Value returned by credentials('${retrievedEcrRepoNameCredId}'): '${ecrRepositoryName}' (Class: ${(ecrRepositoryName != null) ? ecrRepositoryName.getClass().getName() : 'null'})"
+
+                    // Explicit check if the credentials() step returned the placeholder string or null
+                    if (awsRegion == null || (awsRegion instanceof String && awsRegion.startsWith('@credentials('))) {
+                        error("CRITICAL FAILURE: credentials('${retrievedAwsRegionCredId}') did NOT resolve to a secret. It returned: '${awsRegion}'. This indicates a problem with the Credentials Binding plugin or its usage, or the credential ID is incorrect/missing.")
+                    }
+                    if (awsAccountId == null || (awsAccountId instanceof String && awsAccountId.startsWith('@credentials('))) {
+                        error("CRITICAL FAILURE: credentials('${retrievedAwsAccountIdCredId}') did NOT resolve to a secret. It returned: '${awsAccountId}'.")
+                    }
+                    if (ecrRepositoryName == null || (ecrRepositoryName instanceof String && ecrRepositoryName.startsWith('@credentials('))) {
+                        error("CRITICAL FAILURE: credentials('${retrievedEcrRepoNameCredId}') did NOT resolve to a secret. It returned: '${ecrRepositoryName}'.")
+                    }
+                    
+                    echo "INFO: Resolved AWS Region: ${awsRegion}"
+                    echo "INFO: Resolved AWS Account ID: ${awsAccountId}"
+                    echo "INFO: Resolved ECR Repository Name: ${ecrRepositoryName}"
+
                     def ecrRegistry = "${awsAccountId}.dkr.ecr.${awsRegion}.amazonaws.com"
                     def ecrImageWithVersionTag = "${ecrRegistry}/${ecrRepositoryName}:${env.BUILD_NUMBER}"
                     def ecrImageWithLatestTag = "${ecrRegistry}/${ecrRepositoryName}:latest"
-                    
                     def localImageWithVersionTag = "${env.LOCAL_IMAGE_BASE_NAME}:${env.BUILD_NUMBER}"
                     def localImageWithLatestTag = "${env.LOCAL_IMAGE_BASE_NAME}:latest"
 
-                    echo "Resolved AWS Region: ${awsRegion}"
-                    echo "Resolved AWS Account ID: ${awsAccountId}"
-                    echo "Resolved ECR Repository Name: ${ecrRepositoryName}"
-                    echo "Constructed ECR Registry: ${ecrRegistry}"
-                    echo "Target ECR image (version tag): ${ecrImageWithVersionTag}"
-                    echo "Target ECR image (latest tag): ${ecrImageWithLatestTag}"
+                    echo "INFO: Constructed ECR Registry: ${ecrRegistry}"
+                    echo "INFO: Target ECR image (version tag): ${ecrImageWithVersionTag}"
+                    echo "INFO: Target ECR image (latest tag): ${ecrImageWithLatestTag}"
 
-                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: env.AWS_CREDENTIALS_ID_JENKINS]]) {
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: retrievedAwsCredsJenkinsId]]) {
                         // This binding makes AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, 
                         // and AWS_SESSION_TOKEN (if applicable) available as environment variables.
+                        // AWS_DEFAULT_REGION is NOT set by this binding directly, so --region is important for CLI.
 
-                        echo "Logging into Amazon ECR (Registry: ${ecrRegistry})..."
+                        echo "INFO: Successfully bound AWS main credentials (ID: '${retrievedAwsCredsJenkinsId}'). Attempting ECR login..."
                         sh "aws ecr get-login-password --region ${awsRegion} | docker login --username AWS --password-stdin ${ecrRegistry}"
-                        echo "Docker login to ECR successful."
+                        echo "INFO: Docker login to ECR successful."
 
-                        echo "Tagging images for ECR..."
+                        echo "INFO: Tagging images for ECR..."
                         sh "docker tag ${localImageWithVersionTag} ${ecrImageWithVersionTag}"
                         sh "docker tag ${localImageWithLatestTag} ${ecrImageWithLatestTag}"
-                        echo "Images tagged for ECR."
+                        echo "INFO: Images tagged for ECR."
 
-                        echo "Pushing image with version tag (${env.BUILD_NUMBER}) to ECR..."
+                        echo "INFO: Pushing image with version tag (${env.BUILD_NUMBER}) to ECR..."
                         sh "docker push ${ecrImageWithVersionTag}"
-                        echo "Pushing image with 'latest' tag to ECR..."
+                        echo "INFO: Pushing image with 'latest' tag to ECR..."
                         sh "docker push ${ecrImageWithLatestTag}"
-                        echo "Docker images pushed successfully to ECR: ${ecrImageWithVersionTag} and ${ecrImageWithLatestTag}"
+                        echo "INFO: Docker images pushed successfully to ECR."
                     }
                 }
             }
         }
 
-        stage('Test') { // Placeholder
-            steps {
-                echo 'Test stage: Placeholder for container tests or other tests'
-            }
-        }
-
-        stage('Deploy') { // Placeholder
-            steps {
-                echo "Deploy stage: Image pushed to ECR. Next steps could involve updating a service."
-            }
-        }
+        // Optional: Add a Test stage if you have automated tests for your container/application
+        // stage('Test Application') {
+        //     steps {
+        //         echo 'Test stage: Placeholder for container tests or other application tests.'
+        //         // Example: sh 'docker run --rm your-image-name:${env.BUILD_NUMBER} your-test-command'
+        //     }
+        // }
     }
 
     post {
         always {
             echo 'Pipeline finished.'
-            // Optional cleanup
+            // Optional: Add cleanup of local Docker images if needed to save space on the Jenkins agent
+            // This is useful if your Jenkins agent has limited disk space.
             // script {
+            //     def localImageWithVersionTag = "${env.LOCAL_IMAGE_BASE_NAME}:${env.BUILD_NUMBER}"
+            //     def localImageWithLatestTag = "${env.LOCAL_IMAGE_BASE_NAME}:latest"
+            //     def ecrRegistry = credentials(env.AWS_ACCOUNT_ID_CRED_ID) + ".dkr.ecr." + credentials(env.AWS_REGION_CRED_ID) + ".amazonaws.com"
+            //     def ecrImageWithVersionTag = ecrRegistry + "/" + credentials(env.ECR_REPOSITORY_NAME_CRED_ID) + ":${env.BUILD_NUMBER}"
+            //     def ecrImageWithLatestTag = ecrRegistry + "/" + credentials(env.ECR_REPOSITORY_NAME_CRED_ID) + ":latest"
             //     try {
-            //         def localImageWithVersionTag = "${env.LOCAL_IMAGE_BASE_NAME}:${env.BUILD_NUMBER}"
-            //         def localImageWithLatestTag = "${env.LOCAL_IMAGE_BASE_NAME}:latest"
-            //         echo "Cleaning up local Docker images: ${localImageWithVersionTag} and ${localImageWithLatestTag}"
+            //         echo "Attempting to clean up local Docker images..."
             //         sh "docker rmi ${localImageWithVersionTag} || true"
             //         sh "docker rmi ${localImageWithLatestTag} || true"
+            //         // Be cautious removing images tagged for ECR if you might re-tag locally later,
+            //         // but generally, after a successful push, they might not be needed locally on the agent.
+            //         // sh "docker rmi ${ecrImageWithVersionTag} || true" 
+            //         // sh "docker rmi ${ecrImageWithLatestTag} || true"
+            //         echo "Local Docker image cleanup attempted."
             //     } catch (e) {
-            //         echo "Could not remove all local images: ${e.getMessage()}"
+            //         echo "Could not remove all local images during cleanup: ${e.getMessage()}"
             //     }
             // }
+        }
+        success {
+            echo 'Pipeline succeeded!'
+            // You could add notifications here (e.g., Slack, email)
+        }
+        failure {
+            echo 'Pipeline failed!'
+            // You could add notifications here
         }
     }
 }
