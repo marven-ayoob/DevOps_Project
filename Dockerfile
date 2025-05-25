@@ -1,21 +1,18 @@
 # Use an official Nginx runtime as a parent image
 FROM nginx:alpine
 
-# Set working directory
+# Set the working directory in the container
 WORKDIR /usr/share/nginx/html
 
-# Remove default Nginx static assets
+# Remove default Nginx welcome page
 RUN rm -rf ./*
 
-# Copy static assets from static-website folder to the Nginx public directory
-COPY static-website/ .
+# Copy the static website files from the 'welcome' folder into the Nginx HTML directory
+# This assumes your Dockerfile is in the root and 'welcome' is a subdirectory.
+COPY welcome/ .
 
-# Create a custom Nginx configuration
-# Assumes nginx.conf is in the root of the build context (same level as Dockerfile)
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Expose port 80 to the outside world
+EXPOSE 80
 
-# Expose port 8080 (as defined in nginx.conf)
-EXPOSE 8080
-
-# Command to run Nginx
+# Command to run Nginx when the container starts
 CMD ["nginx", "-g", "daemon off;"]
