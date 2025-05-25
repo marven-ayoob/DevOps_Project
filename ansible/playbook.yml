@@ -1,0 +1,84 @@
+---
+- name: Setup Kubernetes, Docker, and Jenkins on EC2
+  hosts: k8s-master
+  become: true
+  tasks:
+
+    - name: Update apt and install prerequisites
+      apt:
+        update_cache: yes
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+        state: present
+
+    - name: Install Docker
+      shell: |
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+        add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu jammy stable"
+        apt-get update
+        apt-get install -y docker-ce
+      args:
+        creates: /usr/bin/docker
+
+    - name: Add ubuntu user to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    - name: Install Kubernetes apt repo
+      shell: |
+        curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+        echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list
+        apt-get update
+      args:
+        creates: /etc/apt/sources.list.d/kubernetes.list
+
+    - name: Install kubeadm, kubelet and kubectl
+      apt:
+        name:
+          - kubelet
+          - kubeadm
+          - kubectl
+        state: present
+        update_cache: yes
+
+    - name: Hold Kubernetes packages at current version
+      shell: apt-mark hold kubelet kubeadm kubectl
+
+    - name: Initialize Kubernetes cluster
+      shell: |
+        kubeadm init --pod-network-cidr=10.244.0.0/16
+      args:
+        creates: /etc/kubernetes/admin.conf
+
+    - name: Setup kubeconfig for ubuntu user
+      become_user: ubuntu
+      shell: |
+        mkdir -p $HOME/.kube
+        sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+        sudo chown $(id -u):$(id -g) $HOME/.kube/config
+      args:
+        creates: /home/ubuntu/.kube/config
+
+    - name: Install Flannel network plugin
+      become_user: ubuntu
+      shell: kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+      args:
+        creates: /etc/cni/net.d/10-flannel.conflist
+
+    - name: Install Jenkins (using Docker container)
+      shell: |
+        docker pull jenkins/jenkins:lts
+        docker run -d --name jenkins -p 8080:8080 -p 50000:50000 -v jenkins_home:/var/jenkins_home jenkins/jenkins:lts
+      args:
+        creates: /var/jenkins_home
+
+    - name: Enable docker service
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
