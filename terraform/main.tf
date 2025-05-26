@@ -1,5 +1,6 @@
-# Configure AWS Provider
+# Terraform configuration for ECR and ECS Fargate
 terraform {
+  required_version = ">= 1.0"
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -19,42 +20,53 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
-variable "image_uri" {
-  description = "Docker image URI"
+variable "project_name" {
+  description = "Name of the project"
   type        = string
-  default     = ""
+  default     = "devops-project"
 }
 
-variable "instance_type" {
-  description = "EC2 instance type"
+variable "ecr_repository_name" {
+  description = "ECR repository name"
   type        = string
-  default     = "t3.medium"
+  default     = "devops-project-repo"
 }
 
-variable "key_name" {
-  description = "AWS EC2 Key Pair name"
-  type        = string
-  default     = "deployer-key"
-}
+# ECR Repository
+resource "aws_ecr_repository" "app_repo" {
+  name                 = var.ecr_repository_name
+  image_tag_mutability = "MUTABLE"
 
-# Data sources
-data "aws_ami" "ubuntu" {
-  most_recent = true
-  owners      = ["099720109477"] # Canonical
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-22.04-amd64-server-*"]
+  image_scanning_configuration {
+    scan_on_push = true
   }
 
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
+  tags = {
+    Name        = var.project_name
+    Environment = "production"
   }
 }
 
-data "aws_availability_zones" "available" {
-  state = "available"
+# ECR Lifecycle Policy
+resource "aws_ecr_lifecycle_policy" "app_repo_policy" {
+  repository = aws_ecr_repository.app_repo.name
+
+  policy = jsonencode({
+    rules = [
+      {
+        rulePriority = 1
+        description  = "Keep last 5 images"
+        selection = {
+          tagStatus   = "any"
+          countType   = "imageCountMoreThan"
+          countNumber = 5
+        }
+        action = {
+          type = "expire"
+        }
+      }
+    ]
+  })
 }
 
 # VPC
@@ -64,8 +76,7 @@ resource "aws_vpc" "main" {
   enable_dns_support   = true
 
   tags = {
-    Name = "static-website-vpc"
-    Environment = "production"
+    Name = "${var.project_name}-vpc"
   }
 }
 
@@ -74,19 +85,30 @@ resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name = "static-website-igw"
+    Name = "${var.project_name}-igw"
   }
 }
 
-# Public Subnet
-resource "aws_subnet" "public" {
+# Public Subnets
+resource "aws_subnet" "public_1" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.1.0/24"
   availability_zone       = data.aws_availability_zones.available.names[0]
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "static-website-public-subnet"
+    Name = "${var.project_name}-public-subnet-1"
+  }
+}
+
+resource "aws_subnet" "public_2" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.2.0/24"
+  availability_zone       = data.aws_availability_zones.available.names[1]
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name = "${var.project_name}-public-subnet-2"
   }
 }
 
@@ -100,68 +122,33 @@ resource "aws_route_table" "public" {
   }
 
   tags = {
-    Name = "static-website-public-rt"
+    Name = "${var.project_name}-public-rt"
   }
 }
 
-# Route Table Association
-resource "aws_route_table_association" "public" {
-  subnet_id      = aws_subnet.public.id
+# Route Table Associations
+resource "aws_route_table_association" "public_1" {
+  subnet_id      = aws_subnet.public_1.id
   route_table_id = aws_route_table.public.id
 }
 
-# Security Group
-resource "aws_security_group" "web" {
-  name        = "static-website-sg"
-  description = "Security group for static website"
+resource "aws_route_table_association" "public_2" {
+  subnet_id      = aws_subnet.public_2.id
+  route_table_id = aws_route_table.public.id
+}
+
+# Security Group for ALB
+resource "aws_security_group" "alb" {
+  name_prefix = "${var.project_name}-alb-"
   vpc_id      = aws_vpc.main.id
 
-  # SSH access
   ingress {
-    description = "SSH"
-    from_port   = 22
-    to_port     = 22
+    from_port   = 8081
+    to_port     = 8081
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # HTTP access
-  ingress {
-    description = "HTTP"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # HTTPS access
-  ingress {
-    description = "HTTPS"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # Kubernetes NodePort range
-  ingress {
-    description = "Kubernetes NodePort"
-    from_port   = 30000
-    to_port     = 32767
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # Kubernetes API Server
-  ingress {
-    description = "Kubernetes API"
-    from_port   = 6443
-    to_port     = 6443
-    protocol    = "tcp"
-    cidr_blocks = ["10.0.0.0/16"]
-  }
-
-  # All outbound traffic
   egress {
     from_port   = 0
     to_port     = 0
@@ -170,73 +157,210 @@ resource "aws_security_group" "web" {
   }
 
   tags = {
-    Name = "static-website-sg"
+    Name = "${var.project_name}-alb-sg"
   }
 }
 
-# EC2 Instance
-resource "aws_instance" "web" {
-  ami                    = data.aws_ami.ubuntu.id
-  instance_type          = var.instance_type
-  key_name              = var.key_name
-  vpc_security_group_ids = [aws_security_group.web.id]
-  subnet_id             = aws_subnet.public.id
-  
-  user_data = base64encode(templatefile("${path.module}/user_data.sh", {
-    aws_region = var.aws_region
-    image_uri  = var.image_uri
-  }))
+# Security Group for ECS Tasks
+resource "aws_security_group" "ecs_tasks" {
+  name_prefix = "${var.project_name}-ecs-tasks-"
+  vpc_id      = aws_vpc.main.id
 
-  root_block_device {
-    volume_type = "gp3"
-    volume_size = 20
-    encrypted   = true
+  ingress {
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   tags = {
-    Name        = "static-website-server"
-    Environment = "production"
-    Project     = "static-website"
+    Name = "${var.project_name}-ecs-tasks-sg"
+  }
+}
+
+# Application Load Balancer
+resource "aws_lb" "main" {
+  name               = "${var.project_name}-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.alb.id]
+  subnets            = [aws_subnet.public_1.id, aws_subnet.public_2.id]
+
+  enable_deletion_protection = false
+
+  tags = {
+    Name = "${var.project_name}-alb"
+  }
+}
+
+# Target Group
+resource "aws_lb_target_group" "app" {
+  name        = "${var.project_name}-tg"
+  port        = 80
+  protocol    = "HTTP"
+  vpc_id      = aws_vpc.main.id
+  target_type = "ip"
+
+  health_check {
+    enabled             = true
+    healthy_threshold   = 2
+    interval            = 30
+    matcher             = "200"
+    path                = "/"
+    port                = "traffic-port"
+    protocol            = "HTTP"
+    timeout             = 5
+    unhealthy_threshold = 2
   }
 
-  # Ensure the instance is ready before proceeding
-  provisioner "remote-exec" {
-    inline = [
-      "cloud-init status --wait"
+  tags = {
+    Name = "${var.project_name}-tg"
+  }
+}
+
+# Listener
+resource "aws_lb_listener" "app" {
+  load_balancer_arn = aws_lb.main.arn
+  port              = "8081"
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.app.arn
+  }
+}
+
+# ECS Cluster
+resource "aws_ecs_cluster" "main" {
+  name = "${var.project_name}-cluster"
+
+  tags = {
+    Name = "${var.project_name}-cluster"
+  }
+}
+
+# ECS Task Execution Role
+resource "aws_iam_role" "ecs_task_execution_role" {
+  name = "${var.project_name}-ecs-task-execution-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }
     ]
+  })
+}
 
-    connection {
-      type        = "ssh"
-      user        = "ubuntu"
-      private_key = file("~/.ssh/id_rsa")
-      host        = self.public_ip
-      timeout     = "10m"
+resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
+  role       = aws_iam_role.ecs_task_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+# ECS Task Definition
+resource "aws_ecs_task_definition" "app" {
+  family                   = "${var.project_name}-task"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = 256
+  memory                   = 512
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+
+  container_definitions = jsonencode([
+    {
+      name      = "${var.project_name}-container"
+      image     = "${aws_ecr_repository.app_repo.repository_url}:latest"
+      essential = true
+
+      portMappings = [
+        {
+          containerPort = 80
+          hostPort      = 80
+        }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.ecs_log_group.name
+          awslogs-region        = var.aws_region
+          awslogs-stream-prefix = "ecs"
+        }
+      }
     }
+  ])
+
+  tags = {
+    Name = "${var.project_name}-task"
   }
+}
+
+# CloudWatch Log Group
+resource "aws_cloudwatch_log_group" "ecs_log_group" {
+  name              = "/ecs/${var.project_name}"
+  retention_in_days = 30
+
+  tags = {
+    Name = "${var.project_name}-log-group"
+  }
+}
+
+# ECS Service
+resource "aws_ecs_service" "app" {
+  name            = "${var.project_name}-service"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.app.arn
+  desired_count   = 1
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    security_groups  = [aws_security_group.ecs_tasks.id]
+    subnets          = [aws_subnet.public_1.id, aws_subnet.public_2.id]
+    assign_public_ip = true
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.app.arn
+    container_name   = "${var.project_name}-container"
+    container_port   = 80
+  }
+
+  depends_on = [aws_lb_listener.app]
+
+  tags = {
+    Name = "${var.project_name}-service"
+  }
+}
+
+# Data source for availability zones
+data "aws_availability_zones" "available" {
+  state = "available"
 }
 
 # Outputs
-output "ec2_public_ip" {
-  description = "Public IP address of the EC2 instance"
-  value       = aws_instance.web.public_ip
+output "ecr_repository_url" {
+  description = "URL of the ECR repository"
+  value       = aws_ecr_repository.app_repo.repository_url
 }
 
-output "ec2_public_dns" {
-  description = "Public DNS name of the EC2 instance"
-  value       = aws_instance.web.public_dns
+output "load_balancer_dns" {
+  description = "DNS name of the load balancer"
+  value       = aws_lb.main.dns_name
 }
 
-output "vpc_id" {
-  description = "ID of the VPC"
-  value       = aws_vpc.main.id
-}
-
-output "subnet_id" {
-  description = "ID of the public subnet"
-  value       = aws_subnet.public.id
-}
-
-output "security_group_id" {
-  description = "ID of the security group"
-  value       = aws_security_group.web.id
+output "application_url" {
+  description = "URL to access the application"
+  value       = "http://${aws_lb.main.dns_name}:8081"
 }
