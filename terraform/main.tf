@@ -364,3 +364,81 @@ output "application_url" {
   description = "URL to access the application"
   value       = "http://${aws_lb.main.dns_name}:8081"
 }
+
+output "ecr_repository_url" {
+  value = aws_ecr_repository.repo.repository_url
+}
+
+output "ecs_cluster_name" {
+  value = aws_ecs_cluster.my_cluster.name
+}
+
+output "ecs_service_name" {
+  value = aws_ecs_service.my_service.name
+}
+
+output "task_execution_role_arn" {
+  value = aws_iam_role.ecsTaskExecutionRole.arn
+}
+output "task_definition_arn" {
+  value = aws_ecs_task_definition.my_task.arn
+}
+output "cloudwatch_log_group_name" {
+  value = aws_cloudwatch_log_group.ecs_log_group.name
+}
+output "vpc_id" {
+  value = aws_vpc.main.id
+}
+
+resource "aws_lb" "ecs_alb" {
+  name               = "ecs-app-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.alb_sg.id]
+  subnets            = var.public_subnets
+}
+
+resource "aws_lb_target_group" "ecs_tg" {
+  name     = "ecs-app-tg"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = var.vpc_id
+  target_type = "ip"
+  health_check {
+    path = "/"
+    port = "80"
+  }
+}
+
+resource "aws_lb_listener" "ecs_listener" {
+  load_balancer_arn = aws_lb.ecs_alb.arn
+  port              = 8081
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.ecs_tg.arn
+  }
+}
+
+resource "aws_ecs_service" "my_service" {
+  name            = "my-service"
+  cluster         = aws_ecs_cluster.my_cluster.id
+  launch_type     = "FARGATE"
+  desired_count   = 1
+  task_definition = aws_ecs_task_definition.app.arn
+
+  network_configuration {
+    subnets         = var.public_subnets
+    security_groups = [aws_security_group.ecs_sg.id]
+    assign_public_ip = true
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.ecs_tg.arn
+    container_name   = "app"
+    container_port   = 80
+  }
+
+  depends_on = [aws_lb_listener.ecs_listener]
+}

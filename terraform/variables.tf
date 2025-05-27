@@ -1,4 +1,3 @@
-# variables.tf
 variable "aws_region" {
   description = "AWS region for resources"
   type        = string
@@ -57,4 +56,32 @@ variable "log_retention_days" {
   description = "CloudWatch log retention in days"
   type        = number
   default     = 30
+}
+
+variable "vpc_id" {
+  description = "VPC ID where resources will be deployed"
+  type        = string
+}
+
+variable "public_subnets" {
+  description = "List of public subnets for ECS and ALB"
+  type        = list(string)
+}
+
+variable "container_name" {
+  description = "Name of the container"
+  type        = string
+  default     = "app"
+}
+
+variable "environment" {
+  description = "Deployment environment (dev, staging, prod)"
+  type        = string
+  default     = "dev"
+}
+
+variable "alb_ingress_cidr_blocks" {
+  description = "List of CIDR blocks allowed to access ALB"
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
 }
