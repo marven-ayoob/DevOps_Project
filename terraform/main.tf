@@ -13,24 +13,24 @@ provider "aws" {
   region = var.aws_region
 }
 
-# Variables
-variable "aws_region" {
-  description = "AWS region"
-  type        = string
-  default     = "us-east-1"
-}
+# # Variables
+# variable "aws_region" {
+#   description = "AWS region"
+#   type        = string
+#   default     = "us-east-1"
+# }
 
-variable "project_name" {
-  description = "Name of the project"
-  type        = string
-  default     = "devops-project"
-}
+# variable "project_name" {
+#   description = "Name of the project"
+#   type        = string
+#   default     = "devops-project"
+# }
 
-variable "ecr_repository_name" {
-  description = "ECR repository name"
-  type        = string
-  default     = "devops-project-repo"
-}
+# variable "ecr_repository_name" {
+#   description = "ECR repository name"
+#   type        = string
+#   default     = "devops-project-repo"
+# }
 
 # ECR Repository
 resource "aws_ecr_repository" "app_repo" {
@@ -350,10 +350,10 @@ data "aws_availability_zones" "available" {
 }
 
 # Outputs
-output "ecr_repository_url" {
-  description = "URL of the ECR repository"
-  value       = aws_ecr_repository.app_repo.repository_url
-}
+# output "ecr_repository_url" {
+#   description = "URL of the ECR repository"
+#   value       = aws_ecr_repository.app_repo.repository_url
+# }
 
 output "load_balancer_dns" {
   description = "DNS name of the load balancer"
