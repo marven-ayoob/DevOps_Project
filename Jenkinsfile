@@ -2,9 +2,9 @@ pipeline {
     agent any
 
     environment {
-        AWS_REGION     = credentials('aws-region')
-        AWS_ACCOUNT_ID = credentials('aws-account-id')
-        ECR_REPO_NAME  = credentials('ecr-repo-name')
+        AWS_REGION     = credentials('ecr-aws-region')
+        AWS_ACCOUNT_ID = credentials('ecr-aws-account-id')
+        ECR_REPO_NAME  = credentials('ecr-repository-name')
     }
 
     stages {
@@ -17,7 +17,7 @@ pipeline {
 
         stage('Terraform Init, Plan & Apply') {
             steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws_credentials_id']]) {
                     dir('terraform') {
                         sh '''
                             terraform init -upgrade
