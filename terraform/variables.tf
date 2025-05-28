@@ -1,87 +1,24 @@
 variable "aws_region" {
-  description = "AWS region for resources"
+  description = "AWS region"
   type        = string
-  default     = "us-east-1"
 }
 
-variable "project_name" {
-  description = "Name of the project - used for resource naming"
+variable "aws_account_id" {
+  description = "AWS account ID"
   type        = string
-  default     = "devops-project"
 }
 
-variable "ecr_repository_name" {
-  description = "Name of the ECR repository"
-  type        = string
-  default     = "devops-project-repo"
-}
-
-variable "container_port" {
-  description = "Port that the container exposes"
-  type        = number
-  default     = 80
-}
-
-variable "host_port" {
-  description = "Port that the ALB listens on"
-  type        = number
-  default     = 8081
-}
-
-variable "fargate_cpu" {
-  description = "CPU units for Fargate task (256, 512, 1024, 2048, 4096)"
-  type        = number
-  default     = 256
-}
-
-variable "fargate_memory" {
-  description = "Memory for Fargate task (512, 1024, 2048, etc.)"
-  type        = number
-  default     = 512
-}
-
-variable "app_count" {
-  description = "Number of Docker containers to run"
-  type        = number
-  default     = 1
-}
-
-variable "health_check_path" {
-  description = "Health check path for the application"
-  type        = string
-  default     = "/"
-}
-
-variable "log_retention_days" {
-  description = "CloudWatch log retention in days"
-  type        = number
-  default     = 30
-}
-
-variable "vpc_id" {
-  description = "VPC ID where resources will be deployed"
+variable "ecr_repo_name" {
+  description = "ECR repository name"
   type        = string
 }
 
 variable "public_subnets" {
-  description = "List of public subnets for ECS and ALB"
+  description = "List of public subnet IDs"
   type        = list(string)
 }
 
-variable "container_name" {
-  description = "Name of the container"
+variable "security_group_id" {
+  description = "Security group ID for ECS tasks"
   type        = string
-  default     = "app"
-}
-
-variable "environment" {
-  description = "Deployment environment (dev, staging, prod)"
-  type        = string
-  default     = "dev"
-}
-
-variable "alb_ingress_cidr_blocks" {
-  description = "List of CIDR blocks allowed to access ALB"
-  type        = list(string)
-  default     = ["0.0.0.0/0"]
 }
