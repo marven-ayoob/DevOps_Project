@@ -2,9 +2,9 @@ pipeline {
     agent any
 
     environment {
-        AWS_REGION = credentials('ecr-aws-region')
-        AWS_ACCOUNT_ID = credentials('ecr-aws-account-id')
-        ECR_REPO_NAME = credentials('ecr-repository-name')
+        AWS_REGION     = credentials('aws-region')
+        AWS_ACCOUNT_ID = credentials('aws-account-id')
+        ECR_REPO_NAME  = credentials('ecr-repo-name')
     }
 
     stages {
@@ -17,13 +17,15 @@ pipeline {
 
         stage('Terraform Init, Plan & Apply') {
             steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws_credentials_id']]) {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
                     dir('terraform') {
                         sh '''
                             terraform init -upgrade
 
                             cat > terraform.tfvars <<EOF
-                            ecr_repo_name = "${ECR_REPO_NAME}"
+                            aws_region     = "${AWS_REGION}"
+                            aws_account_id = "${AWS_ACCOUNT_ID}"
+                            ecr_repo_name  = "${ECR_REPO_NAME}"
                             EOF
 
                             terraform plan -var-file=terraform.tfvars -out=tfplan
@@ -39,8 +41,8 @@ pipeline {
                 script {
                     dir('terraform') {
                         env.ECR_REPO_URL = sh(script: "terraform output -raw ecr_repository_url", returnStdout: true).trim()
-                        env.ECS_CLUSTER = sh(script: "terraform output -raw ecs_cluster_name", returnStdout: true).trim()
-                        env.ECS_SERVICE = sh(script: "terraform output -raw ecs_service_name", returnStdout: true).trim()
+                        env.ECS_CLUSTER  = sh(script: "terraform output -raw ecs_cluster_name", returnStdout: true).trim()
+                        env.ECS_SERVICE  = sh(script: "terraform output -raw ecs_service_name", returnStdout: true).trim()
                         env.TASK_EXEC_ROLE = sh(script: "terraform output -raw task_execution_role_arn", returnStdout: true).trim()
                         echo "ECR URL: ${env.ECR_REPO_URL}"
                         echo "ECS Cluster: ${env.ECS_CLUSTER}"
@@ -53,13 +55,12 @@ pipeline {
         stage('Build & Push Docker Image') {
             steps {
                 sh '''
-                    docker build -t ${ECR_REPO_URL}:9 .
-                    docker tag ${ECR_REPO_URL}:9 ${ECR_REPO_URL}:latest
+                    docker build -t ${ECR_REPO_URL}:latest .
+                    docker tag ${ECR_REPO_URL}:latest ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}:latest
 
                     aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
 
-                    docker push ${ECR_REPO_URL}:9
-                    docker push ${ECR_REPO_URL}:latest
+                    docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}:latest
                 '''
             }
         }
@@ -138,7 +139,6 @@ pipeline {
         always {
             echo 'Cleaning up...'
             sh '''
-                docker rmi ${ECR_REPO_URL}:9 || true
                 docker rmi ${ECR_REPO_URL}:latest || true
             '''
         }
